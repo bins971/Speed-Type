@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Type</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="container d-flex justify-content-center align-items-center min-vh-100">
+        <div class="game-container shadow-lg">
+            <div class="controls-header">
+                <h1 class="fw-bolder mb-0">Speed Type</h1>
+                <div class="control-group">
+                    <button id="theme-toggle" class="theme-btn" title="Toggle Theme">🌙</button>
+                    <button id="sound-toggle" class="theme-btn" title="Toggle Sound">🔊</button>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center mb-4">
+                <label for="difficulty-select" class="me-2 fw-bold opacity-75">Difficulty:</label>
+                <select id="difficulty-select" class="form-select w-auto">
+                    <option value="simple">Simple</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+
+            <div id="lives-display" class="lives-display d-none mb-3">
+                Lives: <span id="lives-count"></span>
+            </div>
+
+            <div id="text-display" class="text-display mb-4"></div>
+
+            <textarea id="text-input" class="form-control mb-4" placeholder="Type here..." rows="3" disabled></textarea>
+
+            <div class="stats-row mb-4">
+                <div class="stat-item">
+                    <div class="label">Time</div>
+                    <div id="timer" class="value">0s</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">WPM</div>
+                    <div id="wpm" class="value">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">Accuracy</div>
+                    <div id="accuracy" class="value">0%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">High Score</div>
+                    <div id="high-score" class="value">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">Streak</div>
+                    <div id="streak" class="value">0</div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-center">
+                <button id="start-button" class="btn btn-primary px-5 py-3 fw-bold">START TEST</button>
+            </div>
+
+            <div id="leaderboard" class="mt-5 pt-4 border-top">
+                <h4 class="text-center mb-4">Recent Players</h4>
+                <div id="recent-players-list" class="list-group list-group-flush">
+                    <!-- Sessions here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="message-overlay" class="overlay"></div>
+
+    <!-- Name Input Modal -->
+    <div id="name-modal" class="custom-modal" style="display:none;">
+        <h3 class="mb-3">Well Done!</h3>
+        <p class="opacity-75 mb-4">Enter your name to save your result.</p>
+        <input type="text" id="player-name-input" class="form-control mb-4 text-center py-2 fs-5"
+            placeholder="Your Name" maxlength="15">
+        <button id="save-name-btn" class="btn btn-primary w-100 py-2">Save Record</button>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="result-modal" class="custom-modal" style="display:none;">
+        <h3 id="result-title" class="mb-3">Session Complete</h3>
+        <p id="result-content" class="mb-4 fs-5"></p>
+        <button onclick="location.reload()" class="btn btn-primary w-100 py-2">Try Again</button>
+    </div>
+
+    <script>
+        const textDisplay = document.getElementById('text-display');
+        const textInput = document.getElementById('text-input');
+        const timerDisplay = document.getElementById('timer');
+        const wpmDisplay = document.getElementById('wpm');
+        const accuracyDisplay = document.getElementById('accuracy');
+        const startButton = document.getElementById('start-button');
+        const difficultySelect = document.getElementById('difficulty-select');
+        const streakDisplay = document.getElementById('streak');
+        const highScoreDisplay = document.getElementById('high-score');
+        const recentList = document.getElementById('recent-players-list');
+        const overlay = document.getElementById('message-overlay');
+        const nameModal = document.getElementById('name-modal');
+        const resultModal = document.getElementById('result-modal');
+        const nameInput = document.getElementById('player-name-input');
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let soundEnabled = true;
+
+        const texts = {
+            simple: [
+                "The quick brown fox jumps over the lazy dog.",
+                "Rain drops fall softly on the green grass.",
+                "Sunsets are beautiful over the calm ocean.",
+                "Cats like to sleep in warm sunny spots.",
+                "Fresh coffee smells great in the morning.",
+                "Birds sing lovely songs in the big forest.",
+                "Small steps can lead to great changes.",
+                "Time flies when you are having fun.",
+                "A smile can make someone's day better.",
+                "Learning new things is always exciting."
+            ],
+            medium: [
+                "Programming requires patience, logic, and consistent practice to master.",
+                "Technology transforms the way we learn, work, and communicate with others.",
+                "Success is not final, failure is not fatal: it is the courage to continue.",
+                "The future belongs to those who believe in the beauty of their dreams.",
+                "Exploring the mysteries of the universe inspires us to seek knowledge.",
+                "A single spark of inspiration can ignite a wildfire of creativity.",
+                "Building strong relationships is the foundation of a happy life.",
+                "Kindness is a language which the deaf can hear and the blind can see.",
+                "Adventure awaits those who are brave enough to leave the shore.",
+                "Persistence and determination are the keys to overcoming obstacles."
+            ],
+            hard: [
+                "Quantum computing leverages the principles of mechanics to solve complex problems.",
+                "Preserving biodiversity is essential for the sustainable health of our planet.",
+                "The intricate dance of supply and demand dictates global economic fluctuations.",
+                "Artificial intelligence algorithms are reshaping the landscape of modern medicine.",
+                "Philosophical inquiry challenges our fundamental assumptions about reality.",
+                "The socioeconomic impact of rapid industrialization varies across different regions.",
+                "Navigating the complexities of international diplomacy requires immense tact.",
+                "Cryptocurrency and blockchain technology represent a paradigm shift in finance.",
+                "Mitigating the effects of climate change demands immediate and unified action.",
+                "Understanding the nuances of linguistic evolution reveals the history of culture."
+            ]
+        };
+
+        let currentText = "", timer = 0, interval = null, startTime = 0;
+        let typed = 0, errors = 0, started = false, pending = null;
+
+        function init() {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') document.body.classList.add('dark-mode');
+            renderRecent();
+            reset();
+        }
+
+        document.getElementById('theme-toggle').onclick = () => {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        };
+
+        function reset() {
+            const mode = difficultySelect.value;
+            currentText = texts[mode][Math.floor(Math.random() * texts[mode].length)];
+            textDisplay.innerHTML = currentText.split('').map(c => `<span>${c}</span>`).join('');
+            textInput.value = ""; textInput.disabled = true;
+            timer = 0; typed = 0; errors = 0; started = false;
+            clearInterval(interval);
+            timerDisplay.textContent = "0s"; wpmDisplay.textContent = "0"; accuracyDisplay.textContent = "0%";
+            highScoreDisplay.textContent = localStorage.getItem('highScore_' + mode) || 0;
+            startButton.disabled = false;
+        }
+
+        difficultySelect.onchange = reset;
+
+        startButton.onclick = () => {
+            textInput.disabled = false; textInput.focus();
+            startButton.disabled = true;
+        };
+
+        textInput.oninput = () => {
+            if (!started) {
+                started = true; startTime = Date.now();
+                interval = setInterval(() => {
+                    timer = Math.floor((Date.now() - startTime) / 1000);
+                    timerDisplay.textContent = timer + "s";
+                    calc();
+                }, 1000);
+            }
+            const val = textInput.value;
+            typed = val.length;
+            errors = 0;
+            const spans = textDisplay.querySelectorAll('span');
+            spans.forEach((s, i) => {
+                if (i < typed) s.className = val[i] === currentText[i] ? "correct" : "incorrect";
+                else s.className = i === typed ? "current" : "";
+            });
+            for (let i = 0; i < typed; i++) if (val[i] !== currentText[i]) errors++;
+            calc();
+            if (typed === currentText.length && val[typed - 1] === currentText[typed - 1]) end();
+        };
+
+        function calc() {
+            if (timer === 0) return;
+            const correct = typed - errors;
+            wpmDisplay.textContent = Math.max(0, Math.round((correct / 5) / (timer / 60)));
+            accuracyDisplay.textContent = Math.max(0, Math.round((correct / typed) * 100)) + "%";
+        }
+
+        function end() {
+            clearInterval(interval); textInput.disabled = true;
+            pending = { wpm: wpmDisplay.textContent, acc: accuracyDisplay.textContent, time: timer };
+            nameModal.style.display = "block"; overlay.style.display = "block";
+            nameInput.value = localStorage.getItem('last_name') || ""; nameInput.focus();
+        }
+
+        document.getElementById('save-name-btn').onclick = () => {
+            const name = nameInput.value.trim() || "Anonymous";
+            localStorage.setItem('last_name', name);
+            const sessions = JSON.parse(localStorage.getItem('sessions') || '[]');
+            sessions.unshift({ name, wpm: pending.wpm, time: pending.time, date: new Date().toLocaleTimeString() });
+            localStorage.setItem('sessions', JSON.stringify(sessions.slice(0, 5)));
+
+            const mode = difficultySelect.value;
+            if (parseInt(pending.wpm) > (localStorage.getItem('highScore_' + mode) || 0)) localStorage.setItem('highScore_' + mode, pending.wpm);
+
+            nameModal.style.display = "none";
+            document.getElementById('result-content').innerHTML = `Player: ${name}<br>WPM: ${pending.wpm}<br>Accuracy: ${pending.acc}<br>Time: ${pending.time}s`;
+            resultModal.style.display = "block";
+        };
+
+        function renderRecent() {
+            const s = JSON.parse(localStorage.getItem('sessions') || '[]');
+            recentList.innerHTML = s.map(x => `
+                <div class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-0 py-3">
+                    <span class="fw-bold">${x.name} <small class="opacity-50 ms-2">${x.date}</small></span>
+                    <span class="badge bg-primary rounded-pill px-3">${x.wpm} WPM | ${x.time}s</span>
+                </div>
+            `).join('') || '<p class="text-center py-3 opacity-50">No sessions yet.</p>';
+        }
+
+        window.onload = init;
+    </script>
+</body>
+
+</html>
