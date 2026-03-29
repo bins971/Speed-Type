@@ -198,7 +198,7 @@
             errors = 0;
             const spans = textDisplay.querySelectorAll('span');
             spans.forEach((s, i) => {
-                if (i < typed) s.className = val[i] === currentText[i] ? "correct" : "incorrect";
+                if (i < typed) s.className = val[i] === currentText[i] ? "correct" : "wrong";
                 else s.className = i === typed ? "current" : "";
             });
             for (let i = 0; i < typed; i++) if (val[i] !== currentText[i]) errors++;
